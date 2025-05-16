@@ -4,9 +4,10 @@ class UserBase(BaseModel):
     username: str
     display_name: str
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    username: str
+    display_name: str
     password: str
-    public_key: str
 
 class User(UserBase):
     id: int
@@ -14,3 +15,7 @@ class User(UserBase):
     
     class Config:
         from_attributes = True  # Замените orm_mode на это
+        
+class UserLogin(BaseModel):
+    username: str
+    password: str

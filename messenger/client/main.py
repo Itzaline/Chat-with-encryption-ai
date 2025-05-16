@@ -1,42 +1,58 @@
 import sys
-import asyncio
-from PyQt6.QtWidgets import QApplication
-from gui.main_window import MainWindow
+from qasync import QApplication, asyncSlot
+from gui.auth_window import AuthWindow
 from network.client import NetworkClient
 from crypto.crypto_manager import CryptoManager
-from gui.registration_dialog import RegistrationDialog
 
 class App:
     def __init__(self):
         self.current_user = None
-        self.crypto = CryptoManager("secret_password")
-        self.network = NetworkClient(self.crypto)
-        self.setup_ui()
+        self.crypto = CryptoManager()  # Создаем экземпляр крипто-менеджера
+        self.network = NetworkClient(self.crypto)  # Передаем его в сетевой клиент
+        self.auth_window = AuthWindow()
+        self.connect_signals()
+        self.auth_window.show()
+    
+    def connect_signals(self):
+        # Подключаем обработчики форм
+        self.auth_window.login_form.login_btn.clicked.connect(self.handle_login)
+        self.auth_window.registration_form.register_btn.clicked.connect(self.handle_register)
+    
+    async def handle_login(self):
+        form = self.auth_window.login_form
+        username = form.username_input.text()
+        password = form.password_input.text()
         
-    def setup_ui(self):
-        self.app = QApplication(sys.argv)
-        self.show_registration_dialog()
-        self.app.exec()
-
-    def show_registration_dialog(self):
-        self.registration_dialog = RegistrationDialog()
-        self.registration_dialog.submit_btn.clicked.connect(self.on_registration)
-        self.registration_dialog.show()
-
-    def on_registration(self):
-        username = self.registration_dialog.username_input.text()
-        display_name = self.registration_dialog.display_name_input.text()
-        avatar = self.registration_dialog.avatar_path
-        
-        self.current_user = {
-            "username": username,
-            "display_name": display_name,
-            "avatar": avatar
+        try:
+            response = await self.network.login(username, password)
+            self.current_user = response['user']
+            self.show_main_window()
+        except Exception as e:
+            form.error_label.setText(str(e))
+    
+    async def handle_register(self):
+        form = self.auth_window.registration_form
+        user_data = {
+            "username": form.username_input.text(),
+            "display_name": form.display_name_input.text(),
+            "password": form.password_input.text(),
+            "avatar": getattr(form, 'avatar_path', "")
         }
         
-        self.main_window = MainWindow()
+        try:
+            response = await self.network.register(user_data)
+            self.current_user = response['user']
+            self.show_main_window()
+        except Exception as e:
+            form.error_label.setText(str(e))
+    
+    def show_main_window(self):
+        from gui.main_window import MainWindow
+        self.main_window = MainWindow(self.current_user)
+        self.auth_window.close()
         self.main_window.show()
-        self.registration_dialog.close()
 
 if __name__ == "__main__":
-    App()
+    app = QApplication(sys.argv)
+    client = App()
+    sys.exit(app.exec())

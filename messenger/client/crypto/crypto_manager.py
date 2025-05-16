@@ -1,3 +1,4 @@
+# client/crypto/crypto_manager.py
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -5,7 +6,7 @@ import base64
 import os
 
 class CryptoManager:
-    def __init__(self, password: str):
+    def __init__(self, password: str = "default_password"):
         self.salt = os.urandom(16)
         self.key = self._derive_key(password)
         self.cipher = Fernet(self.key)

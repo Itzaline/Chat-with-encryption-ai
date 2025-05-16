@@ -6,3 +6,12 @@ class MessageProtocol(BaseModel):
     avatar_url: str
     encrypted_data: str
     timestamp: float
+
+class UserCreate(BaseModel):
+    username: str
+    display_name: str
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
