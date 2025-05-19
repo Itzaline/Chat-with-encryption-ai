@@ -1,55 +1,42 @@
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-import pickle
-import re
+from sklearn.metrics import classification_report
 import nltk
 from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+import re
+import pickle
 
-# Инициализация NLP
-nltk.download(['punkt', 'stopwords', 'wordnet'], quiet=True)
+# Загрузка данных
+df = pd.read_csv('spam.csv', encoding='latin-1')
+df = df[['v1', 'v2']].rename(columns={'v1': 'label', 'v2': 'text'})
 
-class TextPreprocessor:
-    def __init__(self):
-        self.lemmatizer = WordNetLemmatizer()
-        self.stop_words = set(stopwords.words('english'))
-        
-    def clean_text(self, text):
-        text = text.lower()
-        text = re.sub(r'[^a-zA-Z]', ' ', text)
-        text = re.sub(r'\s+', ' ', text).strip()
-        words = nltk.word_tokenize(text)
-        words = [self.lemmatizer.lemmatize(w) for w in words if w not in self.stop_words]
-        return ' '.join(words)
+# Обновленные стоп-слова
+nltk.download(['punkt', 'stopwords'])
+stop_words = set(stopwords.words('english') + ['ur', 'nbsp', 'lt', 'gt'])
 
-def main():
-    # Загрузка данных
-    df = pd.read_csv('spam.csv', encoding='latin-1')
-    df = df[['v1', 'v2']].rename(columns={'v1': 'label', 'v2': 'text'})
+def preprocess(text):
+    text = re.sub(r'[^a-zA-Z]', ' ', str(text).lower())
+    words = word_tokenize(text)
+    return ' '.join([w for w in words if w not in stop_words and len(w) > 2])
 
-    # Предобработка
-    preprocessor = TextPreprocessor()
-    df['clean_text'] = df['text'].apply(preprocessor.clean_text)
+df['clean_text'] = df['text'].apply(preprocess)
 
-    # Создание пайплайна
-    model = Pipeline([
-        ('tfidf', TfidfVectorizer()),
-        ('clf', MultinomialNB())
-    ])
+# Векторизация и обучение
+vectorizer = TfidfVectorizer(ngram_range=(1,2), max_features=5000)
+X = vectorizer.fit_transform(df['clean_text'])
+y = df['label'].map({'ham':0, 'spam':1})
 
-    # Обучение
-    model.fit(df['clean_text'], df['label'].map({'ham': 0, 'spam': 1}))
+model = MultinomialNB()
+model.fit(X, y)
 
-    # Сохранение артефактов
-    with open('model.pkl', 'wb') as f:
-        pickle.dump(model.named_steps['clf'], f)
-    with open('vectorizer.pkl', 'wb') as f:
-        pickle.dump(model.named_steps['tfidf'], f)
+# Сохранение артефактов
+with open('model.pkl', 'wb') as f:
+    pickle.dump(model, f)
+with open('vectorizer.pkl', 'wb') as f:
+    pickle.dump(vectorizer, f)
 
-    print("Модель успешно обучена и сохранена!")
-
-if __name__ == "__main__":
-    main()
+print("Модель успешно обучена!")

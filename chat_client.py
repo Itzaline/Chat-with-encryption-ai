@@ -1,23 +1,22 @@
-# chat_client.py (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 import socket
 import threading
 import tkinter as tk
 from tkinter import scrolledtext, simpledialog, messagebox
 from cryptography.fernet import Fernet
 
-SERVER_IP = '2.134.115.250'
+SERVER_IP = 'localhost'
 PORT = 25564
 
 class SecureChatClient:
     def __init__(self, root):
         self.root = root
         self.root.title("Secure Chat (Fernet)")
-
         self.nickname = simpledialog.askstring("Никнейм", "Введите ваш ник:", parent=root)
+        
         if not self.nickname:
             root.destroy()
             return
-
+            
         self.setup_ui()
         self.connect_to_server()
 
@@ -38,9 +37,11 @@ class SecureChatClient:
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((SERVER_IP, PORT))
-
-            self.fernet = Fernet(self.sock.recv(44))
+            
+            key = self.sock.recv(44)
+            self.fernet = Fernet(key)
             self.sock.send(self.fernet.encrypt(self.nickname.encode()))
+            
             threading.Thread(target=self.receive_messages, daemon=True).start()
 
         except Exception as e:
@@ -54,11 +55,20 @@ class SecureChatClient:
                 full_msg = f"{self.nickname}: {message}"
                 encrypted = self.fernet.encrypt(full_msg.encode())
                 self.sock.send(encrypted)
-                self.display_message(full_msg)
+                
+                # Добавлен вызов правильного метода
+                self.display_message(full_msg)  # Теперь метод существует
                 self.entry.delete(0, tk.END)
 
             except Exception as e:
                 messagebox.showerror("Ошибка", f"Ошибка отправки: {e}")
+
+    # Добавлен недостающий метод
+    def display_message(self, msg):
+        self.text_area.configure(state='normal')
+        self.text_area.insert(tk.END, msg + "\n")
+        self.text_area.configure(state='disabled')
+        self.text_area.yview(tk.END)
 
     def receive_messages(self):
         while True:
@@ -66,34 +76,30 @@ class SecureChatClient:
                 encrypted = self.sock.recv(4096)
                 if not encrypted:
                     break
-
+            
                 message = self.fernet.decrypt(encrypted).decode()
             
-                # Отдельная обработка системных сообщений
                 if message.startswith("Система:"):
-                    self.show_system_notification(message)
+                    self.show_alert(message)
                 else:
                     self.display_message(message)
-
+                
             except Exception as e:
-                print(f"[Ошибка получения] {e}")
+                print(f"[Ошибка] {e}")
                 break
 
-def show_system_notification(self, msg):
-    self.text_area.configure(state='normal')
-    self.text_area.tag_config('system', foreground='red')
-    self.text_area.insert(tk.END, msg + "\n", 'system')
-    self.text_area.configure(state='disabled')
-    self.text_area.yview(tk.END)
-
-    def display_message(self, msg):
+    def show_alert(self, text):
         self.text_area.configure(state='normal')
-        self.text_area.insert(tk.END, msg + "\n")
+        self.text_area.tag_config('alert', foreground='red', font=('Arial', 10, 'bold'))
+        self.text_area.insert(tk.END, text + "\n", 'alert')
         self.text_area.configure(state='disabled')
         self.text_area.yview(tk.END)
 
     def on_close(self):
-        self.sock.close()
+        try:
+            self.sock.close()
+        except:
+            pass
         self.root.destroy()
 
 if __name__ == "__main__":
