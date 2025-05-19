@@ -1,3 +1,4 @@
+# chat_client.py (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 import socket
 import threading
 import tkinter as tk
@@ -6,7 +7,6 @@ from cryptography.fernet import Fernet
 
 SERVER_IP = 'localhost'
 PORT = 25564
-
 
 class SecureChatClient:
     def __init__(self, root):
@@ -39,13 +39,8 @@ class SecureChatClient:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((SERVER_IP, PORT))
 
-            # Получаем ключ от сервера
-            self.fernet = Fernet(self.sock.recv(44))  # 44 байта - длина ключа Fernet
-
-            # Отправляем зашифрованный никнейм
+            self.fernet = Fernet(self.sock.recv(44))
             self.sock.send(self.fernet.encrypt(self.nickname.encode()))
-
-            # Поток для приема сообщений
             threading.Thread(target=self.receive_messages, daemon=True).start()
 
         except Exception as e:
@@ -56,12 +51,9 @@ class SecureChatClient:
         message = self.entry.get()
         if message:
             try:
-                # Шифруем и отправляем сообщение
                 full_msg = f"{self.nickname}: {message}"
                 encrypted = self.fernet.encrypt(full_msg.encode())
                 self.sock.send(encrypted)
-
-                # Немедленно отображаем свое сообщение
                 self.display_message(full_msg)
                 self.entry.delete(0, tk.END)
 
@@ -75,9 +67,8 @@ class SecureChatClient:
                 if not encrypted:
                     break
 
-                # Получаем и отображаем сообщения от других
                 message = self.fernet.decrypt(encrypted).decode()
-                if not message.startswith(self.nickname + ":"):  # Не дублируем свои сообщения
+                if not message.startswith(self.nickname + ":"):
                     self.display_message(message)
 
             except Exception as e:
@@ -93,7 +84,6 @@ class SecureChatClient:
     def on_close(self):
         self.sock.close()
         self.root.destroy()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
