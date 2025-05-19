@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import scrolledtext, simpledialog, messagebox
 from cryptography.fernet import Fernet
 
-SERVER_IP = 'localhost'
+SERVER_IP = '2.134.115.250'
 PORT = 25564
 
 class SecureChatClient:
@@ -68,12 +68,23 @@ class SecureChatClient:
                     break
 
                 message = self.fernet.decrypt(encrypted).decode()
-                if not message.startswith(self.nickname + ":"):
+            
+                # Отдельная обработка системных сообщений
+                if message.startswith("Система:"):
+                    self.show_system_notification(message)
+                else:
                     self.display_message(message)
 
             except Exception as e:
                 print(f"[Ошибка получения] {e}")
                 break
+
+def show_system_notification(self, msg):
+    self.text_area.configure(state='normal')
+    self.text_area.tag_config('system', foreground='red')
+    self.text_area.insert(tk.END, msg + "\n", 'system')
+    self.text_area.configure(state='disabled')
+    self.text_area.yview(tk.END)
 
     def display_message(self, msg):
         self.text_area.configure(state='normal')

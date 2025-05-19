@@ -1,89 +1,55 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.pipeline import Pipeline
+import pickle
+import re
 import nltk
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-import re
+from nltk.stem import WordNetLemmatizer
 
-# Проверка и загрузка необходимых ресурсов
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
+# Инициализация NLP
+nltk.download(['punkt', 'stopwords', 'wordnet'], quiet=True)
 
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
+class TextPreprocessor:
+    def __init__(self):
+        self.lemmatizer = WordNetLemmatizer()
+        self.stop_words = set(stopwords.words('english'))
+        
+    def clean_text(self, text):
+        text = text.lower()
+        text = re.sub(r'[^a-zA-Z]', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        words = nltk.word_tokenize(text)
+        words = [self.lemmatizer.lemmatize(w) for w in words if w not in self.stop_words]
+        return ' '.join(words)
 
-try:
-    nltk.data.find('tokenizers/punkt_tab')
-except LookupError:
-    nltk.download('punkt_tab')
+def main():
+    # Загрузка данных
+    df = pd.read_csv('spam.csv', encoding='latin-1')
+    df = df[['v1', 'v2']].rename(columns={'v1': 'label', 'v2': 'text'})
 
-# Загрузка датасета
-df = pd.read_csv('spam.csv', encoding='latin-1')
-df = df[['v1', 'v2']]
-df.columns = ['Label', 'Text']
+    # Предобработка
+    preprocessor = TextPreprocessor()
+    df['clean_text'] = df['text'].apply(preprocessor.clean_text)
 
-# Загрузка стоп-слов и токенизатора
-nltk.download('stopwords')
-nltk.download('punkt')
-stop_words = set(stopwords.words('english'))
+    # Создание пайплайна
+    model = Pipeline([
+        ('tfidf', TfidfVectorizer()),
+        ('clf', MultinomialNB())
+    ])
 
-# Предобработка текста
-def preprocess_text(text):
-    text = text.lower()
-    text = re.sub(r'[^a-zA-Z]', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    words = word_tokenize(text)
-    words = [word for word in words if word not in stop_words]
-    return ' '.join(words)
+    # Обучение
+    model.fit(df['clean_text'], df['label'].map({'ham': 0, 'spam': 1}))
 
-df['Cleaned_Text'] = df['Text'].apply(preprocess_text)
+    # Сохранение артефактов
+    with open('model.pkl', 'wb') as f:
+        pickle.dump(model.named_steps['clf'], f)
+    with open('vectorizer.pkl', 'wb') as f:
+        pickle.dump(model.named_steps['tfidf'], f)
 
-# Векторизация текста с помощью TF-IDF
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(df['Cleaned_Text'])
-y = df['Label'].map({'ham': 0, 'spam': 1})
+    print("Модель успешно обучена и сохранена!")
 
-# Разделение на обучающую и тестовую выборки
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Обучение модели
-model = MultinomialNB()
-model.fit(X_train, y_train)
-
-# Оценка модели
-y_pred = model.predict(X_test)
-print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
-print("\nClassification Report:\n", classification_report(y_test, y_pred))
-print("\nAccuracy Score:", accuracy_score(y_test, y_pred))
-
-# Предсказание для новых сообщений
-new_emails = [
-    "Congratulations! You've won a free iPhone.",
-    "Hi, let's catch up this weekend."
-]
-new_emails_cleaned = [preprocess_text(email) for email in new_emails]
-new_emails_vectorized = vectorizer.transform(new_emails_cleaned)
-predictions = model.predict(new_emails_vectorized)
-
-for i, email in enumerate(new_emails):
-    print(f"Email: {email} --> {'Spam' if predictions[i] == 1 else 'Ham'}")
-
-
-# В конец файла ForApp.py добавьте:
-
-import pickle
-
-# Сохранение модели и векторайзера
-with open('model.pkl', 'wb') as f:
-    pickle.dump(model, f)
-
-with open('vectorizer.pkl', 'wb') as f:
-    pickle.dump(vectorizer, f)
+if __name__ == "__main__":
+    main()
