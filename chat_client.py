@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import scrolledtext, simpledialog, messagebox
 from cryptography.fernet import Fernet
 
-SERVER_IP = 'localhost'
+SERVER_IP = '2.134.115.250'
 PORT = 25564
 
 class SecureChatClient:
@@ -52,7 +52,7 @@ class SecureChatClient:
         message = self.entry.get()
         if message:
             try:
-                full_msg = f"{self.nickname}: {message}"
+                full_msg = f"{message}" #{self.nickname}: {message}
                 encrypted = self.fernet.encrypt(full_msg.encode())
                 self.sock.send(encrypted)
                 
