@@ -52,14 +52,14 @@ class SecureChatClient:
         message = self.entry.get()
         if message:
             try:
-                full_msg = f"{message}" #{self.nickname}: {message}
-                encrypted = self.fernet.encrypt(full_msg.encode())
+                # Отправляем только текст без ника
+                encrypted = self.fernet.encrypt(message.encode())
                 self.sock.send(encrypted)
-                
-                # Добавлен вызов правильного метода
-                self.display_message(full_msg)  # Теперь метод существует
+            
+                # Локальное отображение с ником
+                self.display_message(f"{self.nickname}: {message}")
                 self.entry.delete(0, tk.END)
-
+            
             except Exception as e:
                 messagebox.showerror("Ошибка", f"Ошибка отправки: {e}")
 
