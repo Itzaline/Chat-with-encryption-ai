@@ -27,7 +27,7 @@ class PrivateChatWindow:
         self.is_closed = False
 
         # Генерация ключа для шифрования истории
-        salt = b'my_fixed_salt_for_user_history'
+        salt = b'hashpassw'
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -339,7 +339,7 @@ class SecureChatClient:
             self.request_user_list()
 
             # Генерация ключа для шифрования истории
-            salt = b'my_fixed_salt_for_user_history'
+            salt = b'hashpassw'
             kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
                 length=32,
