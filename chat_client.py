@@ -145,7 +145,7 @@ class PrivateChatWindow:
 class SecureChatClient:
     def __init__(self, root):
         self.root = root
-        self.root.title("Secure Chat Client")
+        self.root.title("Gammagram")
         self.root.geometry("1000x600")
         self.root.minsize(800, 500)
 
