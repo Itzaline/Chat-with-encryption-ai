@@ -1,0 +1,26 @@
+[
+  {
+    "timestamp": "12:55",
+    "sender": "Вы",
+    "message": "жжжжжж",
+    "tag": "self"
+  },
+  {
+    "timestamp": "12:56",
+    "sender": "КФые",
+    "message": "ddasdasda",
+    "tag": "other"
+  },
+  {
+    "timestamp": "12:56",
+    "sender": "КФые",
+    "message": "dsadas",
+    "tag": "other"
+  },
+  {
+    "timestamp": "12:56",
+    "sender": "Вы",
+    "message": "ррррррррррр",
+    "tag": "self"
+  }
+]
